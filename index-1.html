@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeline Program Kerja</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,sans-serif;margin:0;color:#fff;min-height:100vh;
+    background:linear-gradient(135deg,#1e3a8a 0%,#6d28d9 50%,#be123c 100%) fixed}
+  header{padding:28px 20px 12px;text-align:center}
+  header h1{margin:0 0 6px;font-size:26px;letter-spacing:.5px}
+  header div{opacity:.85;font-size:14px}
+  main{max-width:760px;margin:auto;padding:16px}
+  .glass{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .banner{background:linear-gradient(90deg,rgba(239,68,68,.85),rgba(168,85,247,.85));
+    padding:14px 16px;border-radius:14px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .filter button{padding:7px 14px;border-radius:20px;background:rgba(255,255,255,.12);color:#fff;
+    font-size:14px;border:1px solid rgba(255,255,255,.3);cursor:pointer}
+  .filter button.on{background:#fff;color:#6d28d9;font-weight:600;border-color:#fff}
+  .timeline{border-left:3px solid;border-image:linear-gradient(#60a5fa,#c084fc,#f87171) 1;margin-left:8px;padding-left:20px}
+  .item{position:relative;border-radius:14px;padding:14px 16px;margin-bottom:14px;
+    background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .item::before{content:"";position:absolute;left:-31px;top:20px;width:14px;height:14px;border-radius:50%;
+    background:var(--c);box-shadow:0 0 0 3px rgba(255,255,255,.35),0 0 12px var(--c)}
+  .item h3{margin:0 0 4px;font-size:16px} .meta{font-size:13px;opacity:.8}
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;color:#fff;margin-top:8px;font-weight:600}
+  .selesai{opacity:.5} .selesai .badge{background:rgba(255,255,255,.25)}
+  .akan .badge{background:linear-gradient(90deg,#2563eb,#7c3aed)}
+  .segera .badge{background:linear-gradient(90deg,#7c3aed,#db2777)}
+  .hari-ini .badge{background:linear-gradient(90deg,#dc2626,#f97316)}
+  .hari-ini{outline:2px solid #fff}
+  h2{margin:26px 0 12px;font-size:18px}
+  .scroll{overflow-x:auto;border-radius:14px}
+  table{width:100%;border-collapse:collapse;font-size:14px;border-radius:14px;overflow:hidden;
+    background:rgba(255,255,255,.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22)}
+  th,td{padding:11px;text-align:left;border-bottom:1px solid rgba(255,255,255,.15)}
+  th{background:rgba(255,255,255,.18)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Timeline Program Kerja</h1>
+  <div>Periode 2026/2027 • Hari ini: <span id="today"></span></div>
+</header>
+<main>
+  <div id="banner"></div>
+  <div class="filter" id="filter"></div>
+  <h2>📅 Tanggal Tetap</h2>
+  <div class="timeline" id="timeline"></div>
+  <h2>🔁 Fleksibel / Berkala</h2>
+  <div class="scroll"><table id="berkala"></table></div>
+  <p class="meta">Weekly Digital Artwork berikutnya: <b id="minggu"></b></p>
+</main>
+
+<script>
+const WARNA = {
+  "Digital Character": "#fb923c",
+  "Digital Creative": "#c084fc",
+  "Digital Safety": "#f87171",
+  "Digital Skill": "#60a5fa"
+};
+const BATAS_SEGERA = 7;
+
+// ====== DATA (edit di sini) ======
+const TETAP = [
+  ["Pengadaan Rompi", "2026-09-21", "Digital Character"],
+  ["Pengadaan Lambang (Pengurus)", "2026-09-25", "Digital Character"],
+  ["Pandu Digital Presents", "2026-10-11", "Digital Creative"],
+  ["Pengadaan Lambang (Anggota)", "2026-10-30", "Digital Character"],
+  ["Lost and Found", "2026-11-09", "Digital Safety"],
+  ["CENTA", "2026-11-21", "Digital Skill"],
+  ["Safety Survey", "2026-12-07", "Digital Safety"],
+  ["Smart Sign", "2026-12-28", "Digital Character"],
+  ["Gen Z Language", "2027-01-15", "Digital Character"],
+  ["Safety Education", "2027-01-20", "Digital Safety"],
+  ["TRIS", "2027-01-21", "Digital Character"], // cek: akhir Januari 2027?
+  ["Unlock", "2027-01-24", "Digital Skill"],
+  ["VISUALIZE", "2027-05-15", "Digital Creative"]
+];
+const BERKALA = [
+  ["Pertemuan Rutin", "2 kali sebulan", "Digital Skill"],
+  ["Pembuatan Maskot", "Fleksibel (mulai awal periode 2026/2027)", "Digital Creative"],
+  ["Weekly Digital Artwork", "Setiap hari Minggu", "Digital Creative"],
+  ["MBG (Media Broadcasting Generation)", "Fleksibel, sesuai kebutuhan kegiatan & publikasi", "Digital Creative"]
+];
+
+// ====== LOGIKA ======
+const bulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const fmt = d => `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+const hariIni = new Date(); hariIni.setHours(0,0,0,0);
+let aktif = "";
+
+function hitung() {
+  return TETAP.map(([nama, iso, divisi]) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    const tgl = new Date(y, m - 1, d);
+    const selisih = Math.round((tgl - hariIni) / 86400000);
+    let status, label;
+    if (selisih < 0) { status = "selesai"; label = `Sudah lewat ${-selisih} hari`; }
+    else if (selisih === 0) { status = "hari-ini"; label = "HARI INI!"; }
+    else if (selisih <= BATAS_SEGERA) { status = "segera"; label = `H-${selisih}`; }
+    else { status = "akan"; label = `${selisih} hari lagi`; }
+    return { nama, divisi, tgl, status, label };
+  }).sort((a, b) => a.tgl - b.tgl);
+}
+
+function render() {
+  const semua = hitung();
+  const tampil = semua.filter(p => !aktif || p.divisi === aktif);
+
+  const segera = semua.filter(p => p.status === "segera" || p.status === "hari-ini");
+  document.getElementById("banner").innerHTML = segera.length
+    ? `<div class="banner"><b>⏰ Pengingat:</b>${segera.map(p =>
+        `<div>${p.nama} (${p.divisi}) — ${p.label}</div>`).join("")}</div>` : "";
+
+  document.getElementById("timeline").innerHTML = tampil.map(p => `
+    <div class="item ${p.status}" style="--c:${WARNA[p.divisi]}">
+      <h3>${p.nama}</h3>
+      <div class="meta">${fmt(p.tgl)} • ${p.divisi}</div>
+      <span class="badge">${p.label}</span>
+    </div>`).join("") || "<p class='meta'>Tidak ada proker.</p>";
+
+  const b = BERKALA.filter(x => !aktif || x[2] === aktif);
+  document.getElementById("berkala").innerHTML =
+    "<tr><th>Program</th><th>Jadwal</th><th>Divisi</th></tr>" +
+    b.map(([n, j, d]) => `<tr><td>${n}</td><td>${j}</td><td>${d}</td></tr>`).join("");
+
+  document.querySelectorAll("#filter button").forEach(btn =>
+    btn.classList.toggle("on", btn.dataset.d === aktif));
+}
+
+// filter
+const filterEl = document.getElementById("filter");
+["", ...Object.keys(WARNA)].forEach(d => {
+  const btn = document.createElement("button");
+  btn.textContent = d || "Semua";
+  btn.dataset.d = d;
+  btn.onclick = () => { aktif = d; render(); };
+  filterEl.appendChild(btn);
+});
+
+// tanggal
+document.getElementById("today").textContent = fmt(hariIni);
+const minggu = new Date(hariIni);
+minggu.setDate(minggu.getDate() + ((7 - minggu.getDay()) % 7));
+document.getElementById("minggu").textContent = fmt(minggu);
+
+render();
+</script>
+</body>
+</html>
