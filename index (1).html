@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pandu Digital | Workboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6fa;color:#172033}
+header{background:#102b50;color:white;padding:26px}
+header h1{margin:0;font-size:26px}
+header p{color:#cbd5e1;margin:8px 0 0}
+main{max-width:1100px;margin:auto;padding:24px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:white;padding:18px;border-radius:14px;box-shadow:0 3px 12px #00000008}
+.stat{font-size:28px;font-weight:bold;margin-top:8px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}
+input,select,button{padding:11px;border:1px solid #d5dce7;border-radius:9px;font-size:14px}
+input,select{background:white}
+button{cursor:pointer;background:#163d6c;color:white;border:0}
+button:hover{opacity:.85}
+.list{display:grid;gap:12px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.item h3{margin:0 0 7px;font-size:17px}
+.meta{font-size:13px;color:#64748b;line-height:1.7}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actions select{max-width:170px}
+.badge{display:inline-block;font-size:12px;padding:5px 9px;border-radius:20px;background:#e8eef7;color:#24476d;margin-top:8px}
+h2{font-size:20px;margin-top:28px}
+@media(max-width:650px){
+ main{padding:14px}
+ .stats{grid-template-columns:1fr}
+ .item{align-items:flex-start;flex-direction:column}
+ .actions{width:100%}
+ .actions select{flex:1}
+}
+</style>
+</head>
+<body>
+<header>
+<h1>◈ Pandu Digital</h1>
+<p>Workboard · Pemantauan Program Kerja 2026/2027</p>
+</header>
+<main>
+<div class="stats">
+<div class="card">Total Proker<div class="stat" id="total">0</div></div>
+<div class="card">Sedang Dikerjakan<div class="stat" id="progress">0</div></div>
+<div class="card">Selesai<div class="stat" id="done">0</div></div>
+</div>
+
+<h2>Program Kerja</h2>
+<div class="toolbar">
+<input id="search" placeholder="Cari program kerja..." oninput="render()">
+<select id="division" onchange="render()">
+<option value="">Semua Divisi</option>
+<option>Digital Character</option>
+<option>Digital Creative</option>
+<option>Digital Safety</option>
+<option>Digital Skill</option>
+</select>
+<select id="filter" onchange="render()">
+<option value="">Semua Status</option>
+<option>Belum dimulai</option>
+<option>Sedang dikerjakan</option>
+<option>Selesai</option>
+</select>
+</div>
+<div class="list" id="list"></div>
+</main>
+
+<script>
+const initial=[
+["Pengadaan Rompi","Digital Character","2026-09-21"],
+["Pengadaan Lambang (Pengurus)","Digital Character","2026-09-25"],
+["Pandu Digital Presents","Digital Creative","2026-10-11"],
+["Pengadaan Lambang (Anggota)","Digital Character","2026-10-30"],
+["Lost and Found","Digital Safety","2026-11-09"],
+["CENTA","Digital Skill","2026-11-21"],
+["Safety Survey","Digital Safety","2026-12-07"],
+["Smart Sign","Digital Character","2026-12-28"],
+["Gen Z Language","Digital Character","2027-01-15"],
+["TRIS","Digital Character","2027-01-31"],
+["Safety Education","Digital Safety","2027-01-20"],
+["Unlock","Digital Skill","2027-01-24"],
+["VISUALIZE","Digital Creative","2027-05-15"],
+["Pertemuan Rutin (2 kali sebulan)","Digital Skill",""],
+["Pembuatan Maskot (Fleksibel)","Digital Creative",""],
+["Weekly Digital Artwork (Mingguan)","Digital Creative",""],
+["MBG (Media Broadcasting Generation)","Digital Creative",""]
+];
+
+let projects;
+try{
+projects=JSON.parse(localStorage.getItem("panduProjects"));
+}catch(e){projects=null}
+
+if(!Array.isArray(projects)){
+projects=initial.map(([name,division,date])=>({
+name,division,date,status:"Belum dimulai"
+}));
+}
+
+function save(){
+try{
+localStorage.setItem("panduProjects",JSON.stringify(projects));
+}catch(e){}
+render();
+}
+
+function formatDate(date){
+if(!date)return "Jadwal fleksibel / berkala";
+return new Date(date+"T00:00:00").toLocaleDateString("id-ID",{
+day:"numeric",month:"long",year:"numeric"
+});
+}
+
+function render(){
+const search=document.getElementById("search").value.toLowerCase();
+const division=document.getElementById("division").value;
+const filter=document.getElementById("filter").value;
+
+document.getElementById("total").textContent=projects.length;
+document.getElementById("progress").textContent=
+projects.filter(p=>p.status==="Sedang dikerjakan").length;
+document.getElementById("done").textContent=
+projects.filter(p=>p.status==="Selesai").length;
+
+const filtered=projects.filter(p=>
+p.name.toLowerCase().includes(search)&&
+(!division||p.division===division)&&
+(!filter||p.status===filter)
+);
+
+document.getElementById("list").innerHTML=filtered.map(p=>{
+const i=projects.indexOf(p);
+return `<div class="card item">
+<div>
+<h3>${p.name}</h3>
+<div class="meta">${p.division} · ${formatDate(p.date)}</div>
+<span class="badge">${p.status}</span>
+</div>
+<div class="actions">
+<select onchange="changeStatus(${i},this.value)">
+<option ${p.status==="Belum dimulai"?"selected":""}>Belum dimulai</option>
+<option ${p.status==="Sedang dikerjakan"?"selected":""}>Sedang dikerjakan</option>
+<option ${p.status==="Selesai"?"selected":""}>Selesai</option>
+</select>
+<button onclick="remind(${i})">WhatsApp</button>
+</div>`;
+}).join("")||'<div class="card">Proker tidak ditemukan.</div>';
+}
+
+function changeStatus(i,status){
+projects[i].status=status;
+save();
+}
+
+function remind(i){
+const p=projects[i];
+const message=`⏰ Pengingat Program Kerja Pandu Digital
+
+Program: ${p.name}
+Divisi: ${p.division}
+Tanggal: ${formatDate(p.date)}
+Status: ${p.status}
+
+Mohon koordinator memastikan persiapan berjalan sesuai rencana.`;
+window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank");
+}
+
+render();
+</script>
+</body>
+</html>
